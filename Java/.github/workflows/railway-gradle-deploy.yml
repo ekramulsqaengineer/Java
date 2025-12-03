@@ -1,4 +1,4 @@
-name: CI/CD - Gradle -> Railway
+name: CI/CD - Maven -> Railway
 
 on:
   push:
@@ -22,29 +22,26 @@ jobs:
         distribution: temurin
         java-version: '17'
 
-    - name: Cache Gradle
+    - name: Cache Maven local repository
       uses: actions/cache@v4
       with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*','**/gradle-wrapper.properties') }}
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          ${{ runner.os }}-gradle-
+          ${{ runner.os }}-m2-
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
-    - name: Build with Gradle
-      run: ./gradlew build --no-daemon
+    - name: Build (mvn package)
+      run: mvn -B clean package --file pom.xml
 
     - name: Run tests
-      run: ./gradlew test --no-daemon
+      run: mvn test
 
+    # Deploy to Railway using community action that runs Railway CLI
     - name: Deploy to Railway
       uses: bervProject/railway-deploy@main
       env:
         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       with:
-        # service: "my-service"   # (optional)
+        # optional: specify service if needed (service ID or name)
+        # service: "my-service"
         detach: "false"
